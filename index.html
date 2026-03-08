@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBT Informatika SMK</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .kotak-login { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 100%; max-width: 300px; text-align: center; }
+        input { box-sizing: border-box; width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        button:hover { background-color: #218838; }
+        #pesan { margin-top: 15px; color: red; font-size: 14px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="kotak-login">
+        <h2>LOGIN UJIAN</h2>
+        <p>CBT Informatika Kelas 10</p>
+        
+        <input type="text" id="nis" placeholder="Masukkan NIS" autocomplete="off">
+        <input type="text" id="token" placeholder="Masukkan Token Ujian" autocomplete="off">
+        
+        <button onclick="prosesLogin()">MASUK UJIAN</button>
+        
+        <p id="pesan"></p>
+    </div>
+
+    <script>
+        // URL Apps Script milik Mas Dwi
+        const URL_API = "https://script.google.com/macros/s/AKfycbxmyUAanuPRXCzAQjN8wCdtSALy_5AnHEYQGvtjc7wgz8riPkmh0jmalRaClKbg1mqY/exec";
+
+        function prosesLogin() {
+            let nis = document.getElementById("nis").value;
+            let token = document.getElementById("token").value;
+            let pesan = document.getElementById("pesan");
+
+            if(nis === "" || token === "") {
+                pesan.style.color = "red";
+                pesan.innerText = "NIS dan Token wajib diisi!";
+                return;
+            }
+
+            pesan.style.color = "blue";
+            pesan.innerText = "Sedang mengecek data... mohon tunggu.";
+
+            // Mengirim data ke Google Apps Script (Ditambah redirect: 'follow' agar tidak diblokir Chrome)
+            fetch(URL_API + "?action=login&nis=" + nis + "&token=" + token, {
+                method: 'GET',
+                redirect: 'follow'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status === "sukses") {
+                    pesan.style.color = "green";
+                    pesan.innerText = "Berhasil! Selamat datang, " + data.data.nama;
+                } else {
+                    pesan.style.color = "red";
+                    pesan.innerText = data.pesan;
+                }
+            })
+            .catch(error => {
+                pesan.style.color = "red";
+                // Pesan error diperbarui agar lebih jelas
+                pesan.innerText = "Koneksi diblokir. Pastikan buka file lewat Local Server (Live Server/XAMPP).";
+                console.error("Detail Error:", error);
+            });
+        }
+    </script>
+
+</body>
+</html>
