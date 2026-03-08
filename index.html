@@ -1,73 +1,133 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBT Informatika SMK</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .kotak-login { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 100%; max-width: 300px; text-align: center; }
-        input { box-sizing: border-box; width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
-        button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        button:hover { background-color: #218838; }
-        #pesan { margin-top: 15px; color: red; font-size: 14px; font-weight: bold; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CBT Informatika SMK</title>
+<style>
+body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; flex-direction: column; }
+
+    /* Desain Kotak Login */
+    .kotak-login { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 100%; max-width: 300px; text-align: center; }
+    input { box-sizing: border-box; width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+    button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; }
+    button:hover { background-color: #218838; }
+    #pesan { margin-top: 15px; font-size: 14px; font-weight: bold; }
+
+    /* Desain Kotak Ujian (Awalnya Disembunyikan) */
+    .kotak-ujian { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 90%; max-width: 800px; display: none; }
+    .header-ujian { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+    .identitas h3, .identitas p { margin: 0; padding: 2px 0; }
+    .timer { font-size: 24px; font-weight: bold; color: #dc3545; }
+    
+    #area-soal { font-size: 18px; line-height: 1.6; }
+&lt;/style&gt;
 </head>
 <body>
 
-    <div class="kotak-login">
-        <h2>LOGIN UJIAN</h2>
-        <p>CBT Informatika Kelas 10</p>
-        
-        <input type="text" id="nis" placeholder="Masukkan NIS" autocomplete="off">
-        <input type="text" id="token" placeholder="Masukkan Token Ujian" autocomplete="off">
-        
-        <button onclick="prosesLogin()">MASUK UJIAN</button>
-        
-        <p id="pesan"></p>
-    </div>
+&lt;!-- ================= BAGIAN 1: LOGIN ================= --&gt;
+&lt;div id="halaman-login" class="kotak-login"&gt;
+    &lt;h2&gt;LOGIN UJIAN&lt;/h2&gt;
+    &lt;p&gt;CBT Informatika Kelas 10&lt;/p&gt;
+    
+    &lt;input type="text" id="nis" placeholder="Masukkan NIS" autocomplete="off"&gt;
+    &lt;input type="text" id="token" placeholder="Masukkan Token Ujian" autocomplete="off"&gt;
+    
+    &lt;button onclick="prosesLogin()"&gt;MASUK UJIAN&lt;/button&gt;
+    &lt;p id="pesan"&gt;&lt;/p&gt;
+&lt;/div&gt;
 
-    <script>
-        // URL Apps Script milik Mas Dwi
-        const URL_API = "https://script.google.com/macros/s/AKfycbzAkFQPW7JWlN68BT4NJIAXxKGEkfGmPpCPI_aAJZx4a7G-vuOWECKk113L3ubMT9lB/exec";
+&lt;!-- ================= BAGIAN 2: AREA UJIAN ================= --&gt;
+&lt;div id="halaman-ujian" class="kotak-ujian"&gt;
+    &lt;div class="header-ujian"&gt;
+        &lt;div class="identitas"&gt;
+            &lt;h3&gt;CBT INFORMATIKA SMK&lt;/h3&gt;
+            &lt;p id="info-siswa"&gt;Siswa: -&lt;/p&gt;
+        &lt;/div&gt;
+        &lt;div class="timer" id="waktu-ujian"&gt;60:00&lt;/div&gt;
+    &lt;/div&gt;
 
-        function prosesLogin() {
-            let nis = document.getElementById("nis").value;
-            let token = document.getElementById("token").value;
-            let pesan = document.getElementById("pesan");
+    &lt;div id="area-soal"&gt;
+        &lt;i&gt;Mempersiapkan soal dari server... Mohon tunggu.&lt;/i&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
 
-            if(nis === "" || token === "") {
-                pesan.style.color = "red";
-                pesan.innerText = "NIS dan Token wajib diisi!";
-                return;
-            }
+&lt;script&gt;
+    // URL Apps Script (Sudah pakai yang terakhir sukses kemarin)
+    const URL_API = "[https://script.google.com/macros/s/AKfycbxmyUAanuPRXCzAQjN8wCdtSALy_5AnHEYQGvtjc7wgz8riPkmh0jmalRaClKbg1mqY/exec](https://script.google.com/macros/s/AKfycbxmyUAanuPRXCzAQjN8wCdtSALy_5AnHEYQGvtjc7wgz8riPkmh0jmalRaClKbg1mqY/exec)";
 
-            pesan.style.color = "blue";
-            pesan.innerText = "Sedang mengecek data... mohon tunggu.";
+    function prosesLogin() {
+        let nis = document.getElementById("nis").value;
+        let token = document.getElementById("token").value;
+        let pesan = document.getElementById("pesan");
 
-            // Mengirim data ke Google Apps Script (Ditambah redirect: 'follow' agar tidak diblokir Chrome)
-            fetch(URL_API + "?action=login&nis=" + nis + "&token=" + token, {
-                method: 'GET',
-                redirect: 'follow'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if(data.status === "sukses") {
-                    pesan.style.color = "green";
-                    pesan.innerText = "Berhasil! Selamat datang, " + data.data.nama;
-                } else {
-                    pesan.style.color = "red";
-                    pesan.innerText = data.pesan;
-                }
-            })
-            .catch(error => {
-                pesan.style.color = "red";
-                // Pesan error diperbarui agar lebih jelas
-                pesan.innerText = "Koneksi diblokir. Pastikan buka file lewat Local Server (Live Server/XAMPP).";
-                console.error("Detail Error:", error);
-            });
+        if(nis === "" || token === "") {
+            pesan.style.color = "red";
+            pesan.innerText = "NIS dan Token wajib diisi!";
+            return;
         }
-    </script>
 
+        pesan.style.color = "blue";
+        pesan.innerText = "Sedang mengecek data... mohon tunggu.";
+
+        fetch(URL_API + "?action=login&nis=" + nis + "&token=" + token, {
+            method: 'GET',
+            redirect: 'follow'
+        })
+        .then(response =&gt; response.json())
+        .then(data =&gt; {
+            if(data.status === "sukses") {
+                pesan.style.color = "green";
+                pesan.innerText = "Berhasil! Membuka ujian...";
+                
+                // Jeda 1.5 detik, lalu pindah tampilan ke halaman ujian
+                setTimeout(() =&gt; {
+                    bukaHalamanUjian(data.data.nama, data.data.kelas);
+                }, 1500);
+
+            } else {
+                pesan.style.color = "red";
+                pesan.innerText = data.pesan;
+            }
+        })
+        .catch(error =&gt; {
+            pesan.style.color = "red";
+            pesan.innerText = "Koneksi terputus. Coba lagi.";
+            console.error(error);
+        });
+    }
+
+    // Fungsi untuk menyembunyikan Login dan memunculkan Ujian
+    function bukaHalamanUjian(namaSiswa, kelasSiswa) {
+        document.getElementById("halaman-login").style.display = "none";
+        document.getElementById("halaman-ujian").style.display = "block";
+        
+        // Tulis nama siswa di pojok kiri atas
+        document.getElementById("info-siswa").innerText = "Siswa: " + namaSiswa + " (" + kelasSiswa + ")";
+        
+        // Panggil fungsi ambil soal dari Google Sheets
+        tarikDataSoal();
+    }
+
+    // Fungsi untuk mengambil soal dari Apps Script (Akan kita kembangkan selanjutnya)
+    function tarikDataSoal() {
+        fetch(URL_API + "?action=getSoal", {
+            method: 'GET',
+            redirect: 'follow'
+        })
+        .then(response =&gt; response.json())
+        .then(data =&gt; {
+            if(data.status === "sukses") {
+                document.getElementById("area-soal").innerHTML = "&lt;b&gt;Berhasil menarik " + data.data.length + " soal!&lt;/b&gt;&lt;br&gt;&lt;br&gt;Tampilan soal satu per satu akan kita buat setelah ini.";
+                console.log("Data Soal dari Database:", data.data);
+            } else {
+                document.getElementById("area-soal").innerHTML = "Gagal memuat soal. " + data.pesan;
+            }
+        })
+        .catch(error =&gt; {
+            document.getElementById("area-soal").innerHTML = "Terjadi kesalahan saat mengunduh soal.";
+        });
+    }
+&lt;/script&gt;
 </body>
 </html>
