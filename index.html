@@ -73,8 +73,8 @@
             "Coding": { buka: "10:00", tutup: "23:59" }
         };
 
-        // ================= SISTEM KEAMANAN & TILANG =================
-        let jumlahPelanggaran = 0; // Variabel penghitung pelanggaran
+        // ================= SISTEM KEAMANAN SUPER KETAT =================
+        let jumlahPelanggaran = 0; 
 
         // Matikan Klik Kanan
         document.addEventListener('contextmenu', event => { event.preventDefault(); alert("Sistem Keamanan: Dilarang klik kanan!"); });
@@ -82,19 +82,33 @@
         // Matikan Copy/Paste
         document.addEventListener('copy', event => { event.preventDefault(); alert("Sistem Keamanan: Dilarang menyalin soal!"); });
         
-        // Sensor Pindah Tab dengan Sistem Tilang 3x
-        document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === 'hidden' && document.getElementById("halaman-ujian").style.display === "block") {
-                jumlahPelanggaran++; // Tambah 1 poin pelanggaran
+        // FUNGSI TILANG (Dipanggil kalau pindah tab atau layar belah)
+        function eksekusiTilang() {
+            // Cek apakah siswa sedang di dalam ujian (halaman ujian tampil) dan ujian belum selesai
+            if (document.getElementById("halaman-ujian").style.display === "block" && jumlahPelanggaran >= 0) {
+                jumlahPelanggaran++; 
                 
                 if (jumlahPelanggaran < 3) {
-                    alert(`⚠️ PERINGATAN PELANGGARAN (${jumlahPelanggaran}/3) ⚠️\n\nAnda terdeteksi keluar dari layar ujian! Jika mencapai 3 kali, Anda akan dikeluarkan otomatis dan jawaban dibatalkan!`);
+                    alert(`⚠️ PERINGATAN PELANGGARAN (${jumlahPelanggaran}/3) ⚠️\n\nSistem mendeteksi Anda keluar dari area ujian (pindah tab / menggunakan layar belah / membuka aplikasi lain).\n\nJika mencapai 3 kali, ujian langsung DIBATALKAN!`);
                 } else {
-                    alert("⛔ PELANGGARAN MAKSIMAL (3/3) ⛔\n\nAnda telah keluar dari layar ujian sebanyak 3 kali. Sistem membatalkan ujian Anda secara otomatis!");
-                    location.reload(); // Paksa refresh (Kick kembali ke Login)
+                    alert("⛔ PELANGGARAN MAKSIMAL (3/3) ⛔\n\nAnda telah terdeteksi melakukan kecurangan sebanyak 3 kali. Sistem membatalkan ujian Anda secara otomatis!");
+                    location.reload(); // Paksa refresh kembali ke Login
                 }
             }
+        }
+
+        // Sensor 1: Pindah Tab / Minimize Browser
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'hidden') {
+                eksekusiTilang();
+            }
         });
+
+        // Sensor 2: Layar Belah (Split Screen) / Kehilangan Fokus / Floating Apps
+        window.addEventListener("blur", () => {
+            eksekusiTilang();
+        });
+
 
         // ================= LOGIKA UJIAN & API =================
         const URL_API = "https://script.google.com/macros/s/AKfycbzAkFQPW7JWlN68BT4NJIAXxKGEkfGmPpCPI_aAJZx4a7G-vuOWECKk113L3ubMT9lB/exec";
@@ -229,15 +243,15 @@
             let btnSelesai = document.getElementById("btn-next");
             if(btnSelesai) { btnSelesai.innerText = "Mengirim..."; btnSelesai.disabled = true; }
 
+            // Matikan sensor tilang agar tidak error saat reload sukses
+            jumlahPelanggaran = -999; 
+
             let jawabanBentukTeks = encodeURIComponent(JSON.stringify(jawabanSiswa));
 
             fetch(URL_API + "?action=submit&nis=" + nisSiswaAktif + "&mapel=" + mapelAktif + "&jawaban=" + jawabanBentukTeks, { method: 'GET', redirect: 'follow' })
             .then(res => res.json())
             .then(data => {
                 if(data.status === "sukses") {
-                    // Jika sukses, reset tilang agar tidak error
-                    jumlahPelanggaran = -999; 
-                    
                     document.getElementById("area-soal").innerHTML = `
                         <div style="text-align:center; padding: 40px 0;">
                             <h2 style="color: #28a745;">UJIAN SELESAI</h2>
@@ -249,9 +263,11 @@
                     document.getElementById("waktu-ujian").innerText = "SELESAI";
                 } else {
                     alert("Gagal menyimpan: " + data.pesan); if(btnSelesai) { btnSelesai.innerText = "SELESAI UJIAN"; btnSelesai.disabled = false; }
+                    jumlahPelanggaran = 0; // Hidupkan lagi kalau gagal kirim
                 }
             }).catch(err => {
                 alert("Terjadi kesalahan koneksi."); if(btnSelesai) { btnSelesai.innerText = "SELESAI UJIAN"; btnSelesai.disabled = false; }
+                jumlahPelanggaran = 0; // Hidupkan lagi kalau gagal kirim
             });
         }
     </script>
