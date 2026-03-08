@@ -63,9 +63,7 @@
 
         let bankSoal = [], indexSoalSaatIni = 0, jawabanSiswa = {}, nisSiswaAktif = "", mapelAktif = "", durasiUjian = 3600, timerInterval, jumlahPelanggaran = 0;
 
-        // FUNGSI SECURITY
         function eksekusiTilang() {
-            // Radar hanya aktif jika jumlahPelanggaran bukan -999 (saat muncul notif/kirim)
             if (document.getElementById("halaman-ujian").style.display === "block" && jumlahPelanggaran !== -999) {
                 jumlahPelanggaran++;
                 if (jumlahPelanggaran < 3) {
@@ -151,28 +149,26 @@
         }
 
         function konfirmasiSelesai() {
-            // Backup poin pelanggaran dan matikan sensor (-999)
             let backupTilang = jumlahPelanggaran;
             jumlahPelanggaran = -999; 
 
             let belumDijawab = [];
-            bankSoal.forEach((soal, index) => {
+            bankSoal.forEach((soal) => {
                 let id = soal.id_soal.toString();
                 if (!jawabanSiswa[id]) {
-                    belumDijawab.push(index + 1);
+                    // MENGGUNAKAN ID SOAL ASLI DARI GOOGLE SHEETS
+                    belumDijawab.push(id); 
                 }
             });
 
             if (belumDijawab.length > 0) {
                 alert(`⚠️ BELUM LENGKAP!\n\nMasih ada ${belumDijawab.length} soal yang belum dijawab.\nNomor Soal: ${belumDijawab.join(", ")}\n\nSilakan cek kembali.`);
-                // Kembalikan poin tilang setelah alert ditutup
                 setTimeout(() => { jumlahPelanggaran = backupTilang; }, 500);
             } else {
                 if (confirm("Yakin ingin mengirim jawaban sekarang?")) { 
                     clearInterval(timerInterval); 
                     kirimJawaban(); 
                 } else {
-                    // Kembalikan poin tilang jika cancel
                     setTimeout(() => { jumlahPelanggaran = backupTilang; }, 500);
                 }
             }
