@@ -3,34 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBT Informatika SMK</title>
+    <title>CBT Ujian SMK</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; flex-direction: column; }
-        
-        /* Kotak Umum */
         .kotak { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 100%; box-sizing: border-box; }
-        
-        /* Login */
         .kotak-login { max-width: 350px; text-align: center; }
-        input[type="text"] { box-sizing: border-box; width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        input[type="text"], select { box-sizing: border-box; width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
         .btn-utama { width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; }
         .btn-utama:hover { background-color: #218838; }
         #pesan { margin-top: 15px; font-size: 14px; font-weight: bold; }
-
-        /* Ujian */
         .kotak-ujian { max-width: 800px; display: none; }
         .header-ujian { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; align-items: center; }
         .identitas h3 { margin: 0 0 5px 0; color: #333; }
         .identitas p { margin: 0; color: #666; font-size: 14px; }
         .timer { font-size: 28px; font-weight: bold; color: #dc3545; background: #ffeeba; padding: 5px 15px; border-radius: 5px; }
-        
-        /* Area Soal */
         #area-soal { font-size: 16px; line-height: 1.6; color: #333; }
         .opsi-jawaban { display: block; background: #f8f9fa; padding: 10px 15px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd; cursor: pointer; transition: 0.2s; }
         .opsi-jawaban:hover { background: #e9ecef; }
         .opsi-jawaban input { margin-right: 10px; cursor: pointer; transform: scale(1.2); }
-        
-        /* Navigasi */
         .navigasi-bawah { display: flex; justify-content: space-between; margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; }
         .btn-nav { padding: 10px 20px; font-size: 16px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; color: white; }
         .btn-prev { background-color: #6c757d; }
@@ -41,8 +31,15 @@
 <body>
 
     <div id="halaman-login" class="kotak kotak-login">
-        <h2>LOGIN CBT</h2>
-        <p>Informatika Kelas X SMK</p>
+        <h2>LOGIN CBT SMK</h2>
+        <p>Silakan pilih mata pelajaran</p>
+        
+        <select id="mapel">
+            <option value="Informatika">Informatika</option>
+            <option value="Broadcasting">Dasar Broadcasting & Perfilman</option>
+            <option value="Coding">Coding & Artificial Intelligence</option>
+        </select>
+
         <input type="text" id="nis" placeholder="Masukkan NIS" autocomplete="off">
         <input type="text" id="token" placeholder="Token Ujian" autocomplete="off">
         <button class="btn-utama" onclick="prosesLogin()">MASUK UJIAN</button>
@@ -52,16 +49,12 @@
     <div id="halaman-ujian" class="kotak kotak-ujian">
         <div class="header-ujian">
             <div class="identitas">
-                <h3>CBT INFORMATIKA</h3>
+                <h3 id="judul-mapel">CBT SMK</h3>
                 <p id="info-siswa">Siswa: -</p>
             </div>
             <div class="timer" id="waktu-ujian">60:00</div>
         </div>
-
-        <div id="area-soal">
-            <i>Sedang mengunduh soal... Mohon tunggu.</i>
-        </div>
-
+        <div id="area-soal"><i>Sedang mengunduh soal... Mohon tunggu.</i></div>
         <div id="area-navigasi" class="navigasi-bawah" style="display: none;">
             <button id="btn-prev" class="btn-nav btn-prev" onclick="gantiSoal(-1)">Pilih Sebelumnya</button>
             <button id="btn-next" class="btn-nav btn-next" onclick="gantiSoal(1)">Pilih Selanjutnya</button>
@@ -69,77 +62,68 @@
     </div>
 
     <script>
-        // URL API milik Mas Dwi (Sudah Terpasang)
+        // URL API MAS DWI
         const URL_API = "https://script.google.com/macros/s/AKfycbzAkFQPW7JWlN68BT4NJIAXxKGEkfGmPpCPI_aAJZx4a7G-vuOWECKk113L3ubMT9lB/exec";
 
-        // Variabel Global
         let bankSoal = [];
         let indexSoalSaatIni = 0;
         let jawabanSiswa = {}; 
-        let nisSiswaAktif = ""; // Menyimpan NIS siswa yang sedang login
+        let nisSiswaAktif = ""; 
+        let mapelAktif = ""; 
 
-        // ================= FITUR LOGIN =================
         function prosesLogin() {
             let nis = document.getElementById("nis").value;
             let token = document.getElementById("token").value;
+            let mapel = document.getElementById("mapel").value;
             let pesan = document.getElementById("pesan");
 
             if(nis === "" || token === "") { pesan.style.color = "red"; pesan.innerText = "NIS & Token wajib diisi!"; return; }
 
             pesan.style.color = "blue"; pesan.innerText = "Memverifikasi data...";
 
-            fetch(URL_API + "?action=login&nis=" + nis + "&token=" + token, { method: 'GET', redirect: 'follow' })
+            fetch(URL_API + "?action=login&nis=" + nis + "&token=" + token + "&mapel=" + mapel, { method: 'GET', redirect: 'follow' })
             .then(res => res.json())
             .then(data => {
                 if(data.status === "sukses") {
                     pesan.style.color = "green"; pesan.innerText = "Berhasil masuk!";
-                    nisSiswaAktif = nis; // Simpan NIS untuk dikirim saat selesai ujian
-                    setTimeout(() => { bukaUjian(data.data.nama, data.data.kelas); }, 1000);
+                    nisSiswaAktif = nis; mapelAktif = mapel;
+                    setTimeout(() => { bukaUjian(data.data.nama, data.data.kelas, mapel); }, 1000);
                 } else {
                     pesan.style.color = "red"; pesan.innerText = data.pesan;
                 }
-            }).catch(err => { pesan.style.color = "red"; pesan.innerText = "Error koneksi server."; console.error(err); });
+            }).catch(err => { pesan.style.color = "red"; pesan.innerText = "Error koneksi server."; });
         }
 
-        // ================= FITUR UJIAN =================
-        function bukaUjian(nama, kelas) {
+        function bukaUjian(nama, kelas, mapel) {
             document.getElementById("halaman-login").style.display = "none";
             document.getElementById("halaman-ujian").style.display = "block";
             document.getElementById("info-siswa").innerText = `Siswa: ${nama} (${kelas})`;
+            document.getElementById("judul-mapel").innerText = `UJIAN ${mapel.toUpperCase()}`;
             tarikDataSoal();
         }
 
         function tarikDataSoal() {
-            fetch(URL_API + "?action=getSoal", { method: 'GET', redirect: 'follow' })
+            fetch(URL_API + "?action=getSoal&mapel=" + mapelAktif, { method: 'GET', redirect: 'follow' })
             .then(res => res.json())
             .then(data => {
                 if(data.status === "sukses" && data.data.length > 0) {
-                    bankSoal = data.data; 
-                    document.getElementById("area-navigasi").style.display = "flex"; 
-                    tampilkanSoal(0); 
+                    bankSoal = data.data; document.getElementById("area-navigasi").style.display = "flex"; tampilkanSoal(0); 
                 } else {
-                    document.getElementById("area-soal").innerHTML = "Gagal memuat soal atau bank soal kosong.";
+                    document.getElementById("area-soal").innerHTML = "Gagal memuat soal. " + data.pesan;
                 }
-            }).catch(err => { document.getElementById("area-soal").innerHTML = "Gagal menghubungi server soal."; });
+            }).catch(err => { document.getElementById("area-soal").innerHTML = "Gagal menghubungi server."; });
         }
 
         function tampilkanSoal(index) {
             let soal = bankSoal[index];
             let nomorSoal = index + 1;
             let jawabanTersimpan = jawabanSiswa[soal.id_soal] || "";
-
-            let tagGambar = "";
-            if(soal.link_gambar && soal.link_gambar.trim() !== "") {
-                tagGambar = `<img src="${soal.link_gambar}" alt="Gambar Soal" style="max-width: 100%; border-radius: 5px; margin-bottom: 15px;">`;
-            }
+            let tagGambar = (soal.link_gambar && soal.link_gambar.trim() !== "") ? `<img src="${soal.link_gambar}" alt="Gambar Soal" style="max-width: 100%; border-radius: 5px; margin-bottom: 15px;">` : "";
 
             let htmlSoal = `
-                <div style="margin-bottom: 20px;">
-                    <span style="background: #007bff; color: white; padding: 3px 10px; border-radius: 15px; font-weight: bold; font-size: 14px;">SOAL NO. ${nomorSoal}</span>
-                </div>
+                <div style="margin-bottom: 20px;"><span style="background: #007bff; color: white; padding: 3px 10px; border-radius: 15px; font-weight: bold; font-size: 14px;">SOAL NO. ${nomorSoal}</span></div>
                 ${tagGambar}
                 <p style="font-size: 18px; font-weight: bold; margin-bottom: 20px;">${soal.pertanyaan}</p>
-                
                 <div style="text-align: left;">
                     <label class="opsi-jawaban"><input type="radio" name="opsi" value="A" onchange="simpanJawaban('${soal.id_soal}', 'A')" ${jawabanTersimpan === 'A' ? 'checked' : ''}> <b>A.</b> ${soal.pil_a}</label>
                     <label class="opsi-jawaban"><input type="radio" name="opsi" value="B" onchange="simpanJawaban('${soal.id_soal}', 'B')" ${jawabanTersimpan === 'B' ? 'checked' : ''}> <b>B.</b> ${soal.pil_b}</label>
@@ -153,73 +137,46 @@
 
             let btnPrev = document.getElementById("btn-prev");
             let btnNext = document.getElementById("btn-next");
-
             btnPrev.style.visibility = (index === 0) ? "hidden" : "visible";
 
             if(index === bankSoal.length - 1) {
-                btnNext.innerText = "SELESAI UJIAN";
-                btnNext.className = "btn-nav btn-selesai";
-                btnNext.onclick = konfirmasiSelesai;
+                btnNext.innerText = "SELESAI UJIAN"; btnNext.className = "btn-nav btn-selesai"; btnNext.onclick = konfirmasiSelesai;
             } else {
-                btnNext.innerText = "Selanjutnya >";
-                btnNext.className = "btn-nav btn-next";
-                btnNext.onclick = function() { gantiSoal(1) };
+                btnNext.innerText = "Selanjutnya >"; btnNext.className = "btn-nav btn-next"; btnNext.onclick = function() { gantiSoal(1) };
             }
         }
 
-        function gantiSoal(arah) {
-            indexSoalSaatIni += arah;
-            tampilkanSoal(indexSoalSaatIni);
-        }
+        function gantiSoal(arah) { indexSoalSaatIni += arah; tampilkanSoal(indexSoalSaatIni); }
+        function simpanJawaban(idSoal, pilihan) { jawabanSiswa[idSoal] = pilihan; }
 
-        function simpanJawaban(idSoal, pilihan) {
-            jawabanSiswa[idSoal] = pilihan;
-        }
-
-        // ================= FITUR SUBMIT NILAI =================
         function konfirmasiSelesai() {
             let totalDijawab = Object.keys(jawabanSiswa).length;
-            let totalSoal = bankSoal.length;
-            
-            let pesanConfirm = `Anda sudah menjawab ${totalDijawab} dari ${totalSoal} soal.\n\nYakin ingin mengakhiri dan mengirim jawaban?`;
+            let pesanConfirm = `Anda sudah menjawab ${totalDijawab} dari ${bankSoal.length} soal.\n\nYakin ingin mengakhiri dan mengirim jawaban?`;
             
             if(confirm(pesanConfirm)) {
                 let btnSelesai = document.getElementById("btn-next");
-                btnSelesai.innerText = "Mengirim...";
-                btnSelesai.disabled = true;
+                btnSelesai.innerText = "Mengirim..."; btnSelesai.disabled = true;
 
-                // Mengubah format jawaban agar bisa dikirim via URL (GET Method)
                 let jawabanBentukTeks = encodeURIComponent(JSON.stringify(jawabanSiswa));
 
-                fetch(URL_API + "?action=submit&nis=" + nisSiswaAktif + "&jawaban=" + jawabanBentukTeks, {
-                    method: 'GET',
-                    redirect: 'follow'
-                })
+                fetch(URL_API + "?action=submit&nis=" + nisSiswaAktif + "&mapel=" + mapelAktif + "&jawaban=" + jawabanBentukTeks, { method: 'GET', redirect: 'follow' })
                 .then(res => res.json())
                 .then(data => {
                     if(data.status === "sukses") {
-                        // Tampilan jika sukses masuk ke server
                         document.getElementById("area-soal").innerHTML = `
                             <div style="text-align:center; padding: 40px 0;">
                                 <h2 style="color: #28a745;">UJIAN SELESAI</h2>
-                                <p>Jawaban Anda telah berhasil tersimpan di server.</p>
-                                <p>Silakan tinggalkan ruangan lab.</p>
+                                <p>Jawaban mapel <b>${mapelAktif}</b> berhasil tersimpan.</p>
+                                <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#007bff; color:white; border:none; border-radius:5px; cursor:pointer;">Kembali ke Login</button>
                             </div>
                         `;
                         document.getElementById("area-navigasi").style.display = "none";
                         document.getElementById("waktu-ujian").innerText = "SELESAI";
-                        document.getElementById("waktu-ujian").style.backgroundColor = "#d4edda";
-                        document.getElementById("waktu-ujian").style.color = "#155724";
                     } else {
-                        alert("Gagal menyimpan data: " + data.pesan);
-                        btnSelesai.innerText = "SELESAI UJIAN";
-                        btnSelesai.disabled = false;
+                        alert("Gagal menyimpan: " + data.pesan); btnSelesai.innerText = "SELESAI UJIAN"; btnSelesai.disabled = false;
                     }
-                })
-                .catch(err => {
-                    alert("Terjadi kesalahan koneksi saat mengirim jawaban. Coba klik lagi.");
-                    btnSelesai.innerText = "SELESAI UJIAN";
-                    btnSelesai.disabled = false;
+                }).catch(err => {
+                    alert("Terjadi kesalahan koneksi."); btnSelesai.innerText = "SELESAI UJIAN"; btnSelesai.disabled = false;
                 });
             }
         }
