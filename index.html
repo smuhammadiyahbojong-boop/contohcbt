@@ -67,32 +67,41 @@
 
     <script>
         // ================= PENGATURAN JADWAL UJIAN =================
-        // Mas Dwi bisa ganti jam buka dan jam tutup di bawah ini:
-        // Format Waktu Wajib: "HH:MM" (contoh: "07:30", "08:45", "15:00")
         const jadwalUjian = {
-            "Informatika": { buka: "20:03", tutup: "23:59" },
-            "Broadcasting": { buka: "20:08", tutup: "23:59" },
-            "Coding": { buka: "20:10", tutup: "23:59" }
+            "Informatika": { buka: "07:30", tutup: "23:59" },
+            "Broadcasting": { buka: "08:45", tutup: "23:59" },
+            "Coding": { buka: "10:00", tutup: "23:59" }
         };
 
-        // ================= SISTEM KEAMANAN =================
+        // ================= SISTEM KEAMANAN & TILANG =================
+        let jumlahPelanggaran = 0; // Variabel penghitung pelanggaran
+
         // Matikan Klik Kanan
-        document.addEventListener('contextmenu', event => { event.preventDefault(); alert("Sistem Keamanan CBT: Dilarang klik kanan!"); });
+        document.addEventListener('contextmenu', event => { event.preventDefault(); alert("Sistem Keamanan: Dilarang klik kanan!"); });
+        
         // Matikan Copy/Paste
-        document.addEventListener('copy', event => { event.preventDefault(); alert("Sistem Keamanan CBT: Dilarang menyalin soal!"); });
-        // Sensor Pindah Tab
+        document.addEventListener('copy', event => { event.preventDefault(); alert("Sistem Keamanan: Dilarang menyalin soal!"); });
+        
+        // Sensor Pindah Tab dengan Sistem Tilang 3x
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === 'hidden' && document.getElementById("halaman-ujian").style.display === "block") {
-                alert("⚠️ PERINGATAN PELANGGARAN! ⚠️\n\nAnda terdeteksi keluar dari layar ujian. Segala aktivitas direkam!");
+                jumlahPelanggaran++; // Tambah 1 poin pelanggaran
+                
+                if (jumlahPelanggaran < 3) {
+                    alert(`⚠️ PERINGATAN PELANGGARAN (${jumlahPelanggaran}/3) ⚠️\n\nAnda terdeteksi keluar dari layar ujian! Jika mencapai 3 kali, Anda akan dikeluarkan otomatis dan jawaban dibatalkan!`);
+                } else {
+                    alert("⛔ PELANGGARAN MAKSIMAL (3/3) ⛔\n\nAnda telah keluar dari layar ujian sebanyak 3 kali. Sistem membatalkan ujian Anda secara otomatis!");
+                    location.reload(); // Paksa refresh (Kick kembali ke Login)
+                }
             }
         });
 
-        // URL API MAS DWI
+        // ================= LOGIKA UJIAN & API =================
         const URL_API = "https://script.google.com/macros/s/AKfycbzAkFQPW7JWlN68BT4NJIAXxKGEkfGmPpCPI_aAJZx4a7G-vuOWECKk113L3ubMT9lB/exec";
 
         let bankSoal = []; let indexSoalSaatIni = 0; let jawabanSiswa = {}; 
         let nisSiswaAktif = ""; let mapelAktif = ""; 
-        let durasiUjian = 60 * 60; // Durasi ujian per siswa: 60 menit (dalam detik)
+        let durasiUjian = 60 * 60; 
         let timerInterval;
 
         function prosesLogin() {
@@ -103,26 +112,21 @@
 
             if(nis === "" || token === "") { pesan.style.color = "red"; pesan.innerText = "NIS & Token wajib diisi!"; return; }
 
-            // --- CEK JADWAL UJIAN DULU ---
+            // Cek Jadwal
             let waktuSekarang = new Date();
             let jam = waktuSekarang.getHours().toString().padStart(2, '0');
             let menit = waktuSekarang.getMinutes().toString().padStart(2, '0');
-            let jamSekarangFormat = jam + ":" + menit; // Menghasilkan misal "08:15"
+            let jamSekarangFormat = jam + ":" + menit; 
 
             let jadwal = jadwalUjian[mapel];
             if(jadwal) {
                 if(jamSekarangFormat < jadwal.buka) {
-                    pesan.style.color = "red";
-                    pesan.innerText = `Ujian ${mapel} baru dibuka pukul ${jadwal.buka} WIB!`;
-                    return; // Stop, jangan masuk
+                    pesan.style.color = "red"; pesan.innerText = `Ujian ${mapel} baru dibuka pukul ${jadwal.buka} WIB!`; return; 
                 }
                 if(jamSekarangFormat > jadwal.tutup) {
-                    pesan.style.color = "red";
-                    pesan.innerText = `Ujian ${mapel} sudah ditutup pada pukul ${jadwal.tutup} WIB!`;
-                    return; // Stop, jangan masuk
+                    pesan.style.color = "red"; pesan.innerText = `Ujian ${mapel} sudah ditutup pukul ${jadwal.tutup} WIB!`; return; 
                 }
             }
-            // -----------------------------
 
             pesan.style.color = "blue"; pesan.innerText = "Memverifikasi data...";
 
@@ -132,6 +136,7 @@
                 if(data.status === "sukses") {
                     pesan.style.color = "green"; pesan.innerText = "Berhasil masuk!";
                     nisSiswaAktif = nis; mapelAktif = mapel;
+                    jumlahPelanggaran = 0; // Reset pelanggaran saat sukses login
                     setTimeout(() => { bukaUjian(data.data.nama, data.data.kelas, mapel); }, 1000);
                 } else {
                     pesan.style.color = "red"; pesan.innerText = data.pesan;
@@ -145,7 +150,7 @@
             document.getElementById("info-siswa").innerText = `Siswa: ${nama} (${kelas})`;
             document.getElementById("judul-mapel").innerText = `UJIAN ${mapel.toUpperCase()}`;
             
-            jalankanTimer(); // Durasi 60 menit mulai jalan
+            jalankanTimer(); 
             tarikDataSoal();
         }
 
@@ -164,7 +169,7 @@
                 if(durasiUjian <= 0) {
                     clearInterval(timerInterval);
                     elemenWaktu.innerText = "HABIS";
-                    alert("WAKTU UJIAN HABIS! Sistem akan menyimpan jawaban Anda secara otomatis.");
+                    alert("WAKTU UJIAN HABIS! Sistem akan menyimpan jawaban otomatis.");
                     kirimJawabanKeServer();
                 }
             }, 1000);
@@ -230,6 +235,9 @@
             .then(res => res.json())
             .then(data => {
                 if(data.status === "sukses") {
+                    // Jika sukses, reset tilang agar tidak error
+                    jumlahPelanggaran = -999; 
+                    
                     document.getElementById("area-soal").innerHTML = `
                         <div style="text-align:center; padding: 40px 0;">
                             <h2 style="color: #28a745;">UJIAN SELESAI</h2>
