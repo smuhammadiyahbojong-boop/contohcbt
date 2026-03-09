@@ -68,18 +68,18 @@
         
         const jadwalUjian = {
             "Bahasa Indonesia": { tanggal: "2026-03-09", buka: "07:30", tutup: "23:59" },
-            "Al Islam": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
-            "Kemuh": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
-            "Barab": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
-            "PJOK": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
-            "PKKTSM1": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
-            "PKKTSM2": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
-            "PKKPSPT": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
-            "SejarahTSM": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
-            "SejarahPSPT": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
-            "Bing": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
-            "Bjawa": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
-            "PKN": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
+            "Al Islam": { tanggal: "2026-03-10", buka: "07:00", tutup: "23:59" },
+            "Kemuh": { tanggal: "2026-03-10", buka: "07:00", tutup: "23:59" },
+            "Barab": { tanggal: "2026-03-10", buka: "07:00", tutup: "23:59" },
+            "PJOK": { tanggal: "2026-03-10", buka: "07:00", tutup: "23:59" },
+            "PKKTSM1": { tanggal: "2026-03-10", buka: "07:00", tutup: "23:59" },
+            "PKKTSM2": { tanggal: "2026-03-10", buka: "07:00", tutup: "23:59" },
+            "PKKPSPT": { tanggal: "2026-03-10", buka: "07:00", tutup: "23:59" },
+            "SejarahTSM": { tanggal: "2026-03-10", buka: "07:00", tutup: "23:59" },
+            "SejarahPSPT": { tanggal: "2026-03-10", buka: "07:00", tutup: "23:59" },
+            "Bing": { tanggal: "2026-03-10", buka: "07:00", tutup: "23:59" },
+            "Bjawa": { tanggal: "2026-03-10", buka: "07:00", tutup: "23:59" },
+            "PKN": { tanggal: "2026-03-10", buka: "07:00", tutup: "23:59" },
             "MTK": { tanggal: "2026-03-09", buka: "17:00", tutup: "23:59" }
         };
 
@@ -150,27 +150,31 @@
             indexSoalSaatIni = idx;
             let s = bankSoal[idx], j = jawabanSiswa[s.id_soal.toString()] || "";
             
-            const formatKonten = (teks) => {
+            // Logika baru untuk merender konten pilihan (Teks atau Gambar)
+            const formatOpsi = (teks) => {
                 if (!teks) return "";
-                if (teks.includes("http")) {
+                if (teks.toString().includes("http")) {
                     return `<br><img src="${teks}" class="img-opsi">`;
                 }
                 return teks;
             };
 
-            let imgQ = s.link_gambar ? `<img src="${s.link_gambar}" style="max-width:100%; margin-bottom:15px;">` : "";
+            let imgSoal = s.link_gambar ? `<img src="${s.link_gambar}" style="max-width:100%; margin-bottom:15px; border-radius:5px; border:1px solid #ddd;">` : "";
 
-            const renderOpsi = (label, teks) => `
+            const renderBarisOpsi = (label, teks) => `
                 <label class="opsi-jawaban">
                     <input type="radio" name="q" onchange="simpanPilihan('${s.id_soal}', '${label}')" ${j===label?'checked':''}> 
-                    <b>${label}.</b> ${formatKonten(teks)}
+                    <b>${label}.</b> ${formatOpsi(teks)}
                 </label>`;
 
             document.getElementById("area-soal").innerHTML = `
-                ${imgQ} <p><b>${idx+1}. ${s.pertanyaan}</b></p>
-                ${renderOpsi('A', s.pil_a)} ${renderOpsi('B', s.pil_b)}
-                ${renderOpsi('C', s.pil_c)} ${renderOpsi('D', s.pil_d)}
-                ${renderOpsi('E', s.pil_e)}
+                ${imgSoal}
+                <p style="font-size:18px; line-height:1.5;"><b>${idx+1}. ${s.pertanyaan}</b></p>
+                ${renderBarisOpsi('A', s.pil_a)}
+                ${renderBarisOpsi('B', s.pil_b)}
+                ${renderBarisOpsi('C', s.pil_c)}
+                ${renderBarisOpsi('D', s.pil_d)}
+                ${renderBarisOpsi('E', s.pil_e)}
             `;
 
             let btn = document.getElementById("btn-next");
@@ -188,19 +192,19 @@
             bankSoal.forEach((soal) => { if (!jawabanSiswa[soal.id_soal.toString()]) belumDijawab.push(soal.id_soal); });
 
             if (belumDijawab.length > 0) {
-                alert(`⚠️ BELUM LENGKAP!\nNomor ID Soal kosong: ${belumDijawab.join(", ")}`);
-                setTimeout(() => { jumlahPelanggaran = backupTilang; }, 500);
+                alert(`⚠️ BELUM LENGKAP!\n\nID Soal yang belum dijawab: ${belumDijawab.join(", ")}`);
+                setTimeout(() => { jumlahPelanggaran = backupTilang; }, 800);
             } else {
-                if (confirm("Kirim jawaban?")) { clearInterval(timerInterval); kirimJawaban(); }
-                else { setTimeout(() => { jumlahPelanggaran = backupTilang; }, 500); }
+                if (confirm("Apakah Anda yakin ingin mengirim jawaban?")) { clearInterval(timerInterval); kirimJawaban(); }
+                else { setTimeout(() => { jumlahPelanggaran = backupTilang; }, 800); }
             }
         }
 
         function kirimJawaban() {
             jumlahPelanggaran = -999;
-            document.getElementById("area-soal").innerHTML = "<h2>Menyimpan jawaban...</h2>";
+            document.getElementById("area-soal").innerHTML = "<h2>Mengirim jawaban... mohon tunggu sebentar.</h2>";
             fetch(`${URL_API}?action=submit&nis=${nisSiswaAktif}&mapel=${mapelAktif}&jawaban=${encodeURIComponent(JSON.stringify(jawabanSiswa))}`)
-            .then(() => { alert("Sukses!"); resetKeLogin("Jawaban tersimpan."); });
+            .then(() => { alert("Sukses! Jawaban Anda telah tersimpan."); resetKeLogin("Ujian Berhasil."); });
         }
 
         function gantiSoal(arah) { if(bankSoal[indexSoalSaatIni+arah]) tampilkanSoal(indexSoalSaatIni+arah); }
