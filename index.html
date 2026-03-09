@@ -17,7 +17,7 @@
         .header-ujian { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; align-items: center; }
         .timer { font-size: 28px; font-weight: bold; color: #dc3545; background: #ffeeba; padding: 5px 15px; border-radius: 5px; }
         .opsi-jawaban { display: block; background: #f8f9fa; padding: 10px 15px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd; cursor: pointer; }
-        .img-opsi { display: block; max-width: 200px; margin-top: 10px; border-radius: 4px; border: 1px solid #ccc; }
+        .img-opsi { display: block; max-width: 250px; margin-top: 10px; border-radius: 4px; border: 1px solid #ccc; }
         .navigasi-bawah { display: flex; justify-content: space-between; margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; }
         .btn-nav { padding: 10px 20px; font-size: 16px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; color: white; }
     </style>
@@ -80,7 +80,7 @@
             "Bing": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
             "Bjawa": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
             "PKN": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
-            "MTK": { tanggal: "2026-03-09", buka: "17:00", tutup: "23:59" },
+            "MTK": { tanggal: "2026-03-09", buka: "17:00", tutup: "23:59" }
         };
 
         let bankSoal = [], indexSoalSaatIni = 0, jawabanSiswa = {}, nisSiswaAktif = "", mapelAktif = "", durasiUjian = 3600, timerInterval, jumlahPelanggaran = 0;
@@ -117,11 +117,11 @@
             let jamSkrg = sekarang.getHours().toString().padStart(2, '0') + ":" + sekarang.getMinutes().toString().padStart(2, '0');
             let jadwal = jadwalUjian[mapel];
 
-            if (tglSkrg !== jadwal.tanggal) { pesan.style.color = "red"; pesan.innerText = `❌ Ujian dijadwalkan tanggal ${jadwal.tanggal}`; return; }
-            if (jamSkrg < jadwal.buka) { pesan.style.color = "orange"; pesan.innerText = `⏳ Belum dibuka! Mulai pukul ${jadwal.buka}`; return; }
-            if (jamSkrg > jadwal.tutup) { pesan.style.color = "red"; pesan.innerText = `🚫 Waktu akses habis pukul ${jadwal.tutup}`; return; }
+            if (!jadwal || tglSkrg !== jadwal.tanggal) { pesan.style.color = "red"; pesan.innerText = "❌ Tidak ada ujian hari ini."; return; }
+            if (jamSkrg < jadwal.buka) { pesan.style.color = "orange"; pesan.innerText = `⏳ Belum dibuka! Mulai jam ${jadwal.buka}`; return; }
+            if (jamSkrg > jadwal.tutup) { pesan.style.color = "red"; pesan.innerText = "🚫 Waktu akses sudah berakhir."; return; }
 
-            pesan.style.color = "blue"; pesan.innerText = "Verifikasi akses...";
+            pesan.style.color = "blue"; pesan.innerText = "Memverifikasi...";
             fetch(`${URL_API}?action=login&nis=${nis}&token=${token}&mapel=${mapel}`).then(r => r.json()).then(d => {
                 if(d.status === "sukses") {
                     nisSiswaAktif = nis; mapelAktif = mapel;
@@ -130,7 +130,7 @@
                     document.getElementById("info-siswa").innerText = `Siswa: ${d.data.nama}`;
                     document.getElementById("judul-mapel").innerText = "UJIAN " + mapel.toUpperCase();
                     mulaiUjian();
-                } else { pesan.style.color = "red"; pesan.innerText = "Akses Ditolak! Cek Token atau Administrasi."; }
+                } else { pesan.style.color = "red"; pesan.innerText = "Akses Ditolak!"; }
             });
         }
 
@@ -150,10 +150,9 @@
             indexSoalSaatIni = idx;
             let s = bankSoal[idx], j = jawabanSiswa[s.id_soal.toString()] || "";
             
-            // Logika Deteksi Link Gambar di Pilihan Jawaban
-            const cekKonten = (teks) => {
+            const formatKonten = (teks) => {
                 if (!teks) return "";
-                if (teks.includes("http") && (teks.includes("googleusercontent") || teks.match(/\.(jpeg|jpg|gif|png)$/) != null)) {
+                if (teks.includes("http")) {
                     return `<br><img src="${teks}" class="img-opsi">`;
                 }
                 return teks;
@@ -161,19 +160,17 @@
 
             let imgQ = s.link_gambar ? `<img src="${s.link_gambar}" style="max-width:100%; margin-bottom:15px;">` : "";
 
-            const renderOpsi = (label, teks, img) => `
+            const renderOpsi = (label, teks) => `
                 <label class="opsi-jawaban">
                     <input type="radio" name="q" onchange="simpanPilihan('${s.id_soal}', '${label}')" ${j===label?'checked':''}> 
-                    <b>${label}.</b> ${teks.includes("http") ? "" : teks} 
-                    ${cekKonten(teks)} 
-                    ${img ? `<img src="${img}" class="img-opsi">` : ""}
+                    <b>${label}.</b> ${formatKonten(teks)}
                 </label>`;
 
             document.getElementById("area-soal").innerHTML = `
                 ${imgQ} <p><b>${idx+1}. ${s.pertanyaan}</b></p>
-                ${renderOpsi('A', s.pil_a, s.img_a)} ${renderOpsi('B', s.pil_b, s.img_b)}
-                ${renderOpsi('C', s.pil_c, s.img_c)} ${renderOpsi('D', s.pil_d, s.img_d)}
-                ${renderOpsi('E', s.pil_e, s.img_e)}
+                ${renderOpsi('A', s.pil_a)} ${renderOpsi('B', s.pil_b)}
+                ${renderOpsi('C', s.pil_c)} ${renderOpsi('D', s.pil_d)}
+                ${renderOpsi('E', s.pil_e)}
             `;
 
             let btn = document.getElementById("btn-next");
@@ -182,41 +179,28 @@
             btn.onclick = idx === bankSoal.length-1 ? konfirmasiSelesai : () => tampilkanSoal(idx+1);
         }
 
-        function simpanPilihan(idSoal, label) {
-            jawabanSiswa[idSoal.toString()] = label;
-        }
+        function simpanPilihan(idSoal, label) { jawabanSiswa[idSoal.toString()] = label; }
 
         function konfirmasiSelesai() {
             let backupTilang = jumlahPelanggaran;
             jumlahPelanggaran = -999; 
             let belumDijawab = [];
-            bankSoal.forEach((soal) => {
-                let id = soal.id_soal.toString();
-                if (!jawabanSiswa[id]) { belumDijawab.push(id); }
-            });
+            bankSoal.forEach((soal) => { if (!jawabanSiswa[soal.id_soal.toString()]) belumDijawab.push(soal.id_soal); });
 
             if (belumDijawab.length > 0) {
-                alert(`⚠️ BELUM LENGKAP!\n\nMasih ada ${belumDijawab.length} soal yang belum dijawab.\nID Soal: ${belumDijawab.join(", ")}\n\nSilakan cek kembali.`);
+                alert(`⚠️ BELUM LENGKAP!\nNomor ID Soal kosong: ${belumDijawab.join(", ")}`);
                 setTimeout(() => { jumlahPelanggaran = backupTilang; }, 500);
             } else {
-                if (confirm("Yakin ingin mengirim jawaban sekarang?")) { 
-                    clearInterval(timerInterval); 
-                    kirimJawaban(); 
-                } else {
-                    setTimeout(() => { jumlahPelanggaran = backupTilang; }, 500);
-                }
+                if (confirm("Kirim jawaban?")) { clearInterval(timerInterval); kirimJawaban(); }
+                else { setTimeout(() => { jumlahPelanggaran = backupTilang; }, 500); }
             }
         }
 
         function kirimJawaban() {
             jumlahPelanggaran = -999;
-            document.getElementById("area-soal").innerHTML = "<h2>Sedang menyimpan nilai...</h2>";
+            document.getElementById("area-soal").innerHTML = "<h2>Menyimpan jawaban...</h2>";
             fetch(`${URL_API}?action=submit&nis=${nisSiswaAktif}&mapel=${mapelAktif}&jawaban=${encodeURIComponent(JSON.stringify(jawabanSiswa))}`)
-            .then(() => { 
-                alert("Jawaban Berhasil Terkirim!");
-                resetKeLogin("Ujian sebelumnya sukses disimpan.");
-                document.getElementById("pesan").style.color = "green";
-            });
+            .then(() => { alert("Sukses!"); resetKeLogin("Jawaban tersimpan."); });
         }
 
         function gantiSoal(arah) { if(bankSoal[indexSoalSaatIni+arah]) tampilkanSoal(indexSoalSaatIni+arah); }
