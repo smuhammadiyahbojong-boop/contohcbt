@@ -41,8 +41,6 @@
             <option value="Bjawa">Bahasa Jawa</option>
             <option value="PKN">PKN</option>
             <option value="MTK">MTK</option>
-            
-</option>
         </select>
         <input type="text" id="nis" placeholder="Masukkan Username">
         <input type="text" id="token" placeholder="Token Ujian">
@@ -68,7 +66,6 @@
     <script>
         const URL_API = "https://script.google.com/macros/s/AKfycbzAkFQPW7JWlN68BT4NJIAXxKGEkfGmPpCPI_aAJZx4a7G-vuOWECKk113L3ubMT9lB/exec";
         
-        // PENGATURAN JADWAL UJIAN
         const jadwalUjian = {
             "Bahasa Indonesia": { tanggal: "2026-03-09", buka: "07:30", tutup: "23:59" },
             "Al Islam": { tanggal: "2026-03-10", buka: "20:00", tutup: "23:59" },
@@ -115,16 +112,14 @@
         function prosesLogin() {
             let nis = document.getElementById("nis").value, token = document.getElementById("token").value, mapel = document.getElementById("mapel").value;
             let pesan = document.getElementById("pesan");
-            
             let sekarang = new Date();
             let tglSkrg = sekarang.getFullYear() + "-" + (sekarang.getMonth() + 1).toString().padStart(2, '0') + "-" + sekarang.getDate().toString().padStart(2, '0');
             let jamSkrg = sekarang.getHours().toString().padStart(2, '0') + ":" + sekarang.getMinutes().toString().padStart(2, '0');
             let jadwal = jadwalUjian[mapel];
 
-            // Proteksi Jadwal
-            if (tglSkrg !== jadwal.tanggal) { pesan.style.color = "red"; pesan.innerText = `❌ Ujian Susulan dijadwalkan tanggal ${jadwal.tanggal}`; return; }
+            if (tglSkrg !== jadwal.tanggal) { pesan.style.color = "red"; pesan.innerText = `❌ Ujian dijadwalkan tanggal ${jadwal.tanggal}`; return; }
             if (jamSkrg < jadwal.buka) { pesan.style.color = "orange"; pesan.innerText = `⏳ Belum dibuka! Mulai pukul ${jadwal.buka}`; return; }
-            if (jamSkrg > jadwal.tutup) { pesan.style.color = "red"; pesan.innerText = `🚫 Waktu pendaftaran habis pukul ${jadwal.tutup}`; return; }
+            if (jamSkrg > jadwal.tutup) { pesan.style.color = "red"; pesan.innerText = `🚫 Waktu akses habis pukul ${jadwal.tutup}`; return; }
 
             pesan.style.color = "blue"; pesan.innerText = "Verifikasi akses...";
             fetch(`${URL_API}?action=login&nis=${nis}&token=${token}&mapel=${mapel}`).then(r => r.json()).then(d => {
@@ -154,19 +149,33 @@
         function tampilkanSoal(idx) {
             indexSoalSaatIni = idx;
             let s = bankSoal[idx], j = jawabanSiswa[s.id_soal.toString()] || "";
+            
+            // Logika Deteksi Link Gambar di Pilihan Jawaban
+            const cekKonten = (teks) => {
+                if (!teks) return "";
+                if (teks.includes("http") && (teks.includes("googleusercontent") || teks.match(/\.(jpeg|jpg|gif|png)$/) != null)) {
+                    return `<br><img src="${teks}" class="img-opsi">`;
+                }
+                return teks;
+            };
+
             let imgQ = s.link_gambar ? `<img src="${s.link_gambar}" style="max-width:100%; margin-bottom:15px;">` : "";
+
             const renderOpsi = (label, teks, img) => `
                 <label class="opsi-jawaban">
                     <input type="radio" name="q" onchange="simpanPilihan('${s.id_soal}', '${label}')" ${j===label?'checked':''}> 
-                    <b>${label}.</b> ${teks}
+                    <b>${label}.</b> ${teks.includes("http") ? "" : teks} 
+                    ${cekKonten(teks)} 
                     ${img ? `<img src="${img}" class="img-opsi">` : ""}
                 </label>`;
+
             document.getElementById("area-soal").innerHTML = `
                 ${imgQ} <p><b>${idx+1}. ${s.pertanyaan}</b></p>
                 ${renderOpsi('A', s.pil_a, s.img_a)} ${renderOpsi('B', s.pil_b, s.img_b)}
                 ${renderOpsi('C', s.pil_c, s.img_c)} ${renderOpsi('D', s.pil_d, s.img_d)}
                 ${renderOpsi('E', s.pil_e, s.img_e)}
             `;
+
             let btn = document.getElementById("btn-next");
             btn.innerText = idx === bankSoal.length-1 ? "SELESAI" : "Selanjutnya";
             btn.style.background = idx === bankSoal.length-1 ? "#dc3545" : "#007bff";
@@ -180,7 +189,6 @@
         function konfirmasiSelesai() {
             let backupTilang = jumlahPelanggaran;
             jumlahPelanggaran = -999; 
-
             let belumDijawab = [];
             bankSoal.forEach((soal) => {
                 let id = soal.id_soal.toString();
