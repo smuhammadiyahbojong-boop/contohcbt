@@ -12,6 +12,10 @@
         .kotak { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 100%; box-sizing: border-box; }
         .kotak-login { max-width: 350px; text-align: center; }
         input[type="text"], select { box-sizing: border-box; width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        
+        /* GAYA NOTIFIKASI ERROR */
+        .error-msg { color: #dc3545; font-size: 14px; margin-bottom: 10px; font-weight: bold; display: none; }
+        
         .btn-utama { width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; }
         .kotak-ujian { max-width: 800px; display: none; }
         .header-ujian { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; align-items: center; }
@@ -26,7 +30,7 @@
 
     <div id="halaman-login" class="kotak kotak-login">
         <h2>LOGIN CBT SMK</h2>
-        <select id="mapel">
+        <select id="mapel" onchange="resetError()">
             <option value="Bahasa Indonesia">Bahasa Indonesia</option>
             <option value="Al Islam">Al Islam</option>
             <option value="Kemuh">Kemuh</option>
@@ -42,10 +46,13 @@
             <option value="PKN">PKN</option>
             <option value="MTK">MTK</option>
         </select>
-        <input type="text" id="nis" placeholder="Masukkan Username">
-        <input type="text" id="token" placeholder="Token Ujian">
+        <input type="text" id="nis" placeholder="Masukkan Username" oninput="resetError()">
+        <input type="text" id="token" placeholder="Token Ujian" oninput="resetError()">
+        
+        <div id="error-login" class="error-msg">⚠️ Akses Ditolak! Username atau Token salah.</div>
+
         <button class="btn-utama" onclick="prosesLogin()">MASUK UJIAN</button>
-        <p id="pesan"></p>
+        <p id="pesan" style="font-size: 14px;"></p>
     </div>
 
     <div id="halaman-ujian" class="kotak kotak-ujian">
@@ -85,6 +92,11 @@
 
         let bankSoal = [], indexSoalSaatIni = 0, jawabanSiswa = {}, nisSiswaAktif = "", mapelAktif = "", durasiUjian = 3600, timerInterval, jumlahPelanggaran = 0;
 
+        function resetError() {
+            document.getElementById("error-login").style.display = "none";
+            document.getElementById("pesan").innerText = "";
+        }
+
         function eksekusiTilang() {
             if (document.getElementById("halaman-ujian").style.display === "block" && jumlahPelanggaran !== -999) {
                 jumlahPelanggaran++;
@@ -112,6 +124,7 @@
         function prosesLogin() {
             let nis = document.getElementById("nis").value, token = document.getElementById("token").value, mapel = document.getElementById("mapel").value;
             let pesan = document.getElementById("pesan");
+            let errorDiv = document.getElementById("error-login");
             let sekarang = new Date();
             let tglSkrg = sekarang.getFullYear() + "-" + (sekarang.getMonth() + 1).toString().padStart(2, '0') + "-" + sekarang.getDate().toString().padStart(2, '0');
             let jamSkrg = sekarang.getHours().toString().padStart(2, '0') + ":" + sekarang.getMinutes().toString().padStart(2, '0');
@@ -130,7 +143,10 @@
                     document.getElementById("info-siswa").innerText = `Siswa: ${d.data.nama}`;
                     document.getElementById("judul-mapel").innerText = "UJIAN " + mapel.toUpperCase();
                     mulaiUjian();
-                } else { pesan.style.color = "red"; pesan.innerText = "Akses Ditolak!"; }
+                } else { 
+                    pesan.innerText = "";
+                    errorDiv.style.display = "block"; // TAMPILKAN ERROR MERAH
+                }
             });
         }
 
@@ -149,8 +165,6 @@
         function tampilkanSoal(idx) {
             indexSoalSaatIni = idx;
             let s = bankSoal[idx], j = jawabanSiswa[s.id_soal.toString()] || "";
-            
-            // Logika baru untuk merender konten pilihan (Teks atau Gambar)
             const formatOpsi = (teks) => {
                 if (!teks) return "";
                 if (teks.toString().includes("http")) {
@@ -158,9 +172,7 @@
                 }
                 return teks;
             };
-
             let imgSoal = s.link_gambar ? `<img src="${s.link_gambar}" style="max-width:100%; margin-bottom:15px; border-radius:5px; border:1px solid #ddd;">` : "";
-
             const renderBarisOpsi = (label, teks) => `
                 <label class="opsi-jawaban">
                     <input type="radio" name="q" onchange="simpanPilihan('${s.id_soal}', '${label}')" ${j===label?'checked':''}> 
@@ -170,13 +182,10 @@
             document.getElementById("area-soal").innerHTML = `
                 ${imgSoal}
                 <p style="font-size:18px; line-height:1.5;"><b>${idx+1}. ${s.pertanyaan}</b></p>
-                ${renderBarisOpsi('A', s.pil_a)}
-                ${renderBarisOpsi('B', s.pil_b)}
-                ${renderBarisOpsi('C', s.pil_c)}
-                ${renderBarisOpsi('D', s.pil_d)}
+                ${renderBarisOpsi('A', s.pil_a)} ${renderBarisOpsi('B', s.pil_b)}
+                ${renderBarisOpsi('C', s.pil_c)} ${renderBarisOpsi('D', s.pil_d)}
                 ${renderBarisOpsi('E', s.pil_e)}
             `;
-
             let btn = document.getElementById("btn-next");
             btn.innerText = idx === bankSoal.length-1 ? "SELESAI" : "Selanjutnya";
             btn.style.background = idx === bankSoal.length-1 ? "#dc3545" : "#007bff";
@@ -192,19 +201,19 @@
             bankSoal.forEach((soal) => { if (!jawabanSiswa[soal.id_soal.toString()]) belumDijawab.push(soal.id_soal); });
 
             if (belumDijawab.length > 0) {
-                alert(`⚠️ BELUM LENGKAP!\n\nID Soal yang belum dijawab: ${belumDijawab.join(", ")}`);
+                alert(`⚠️ BELUM LENGKAP!\nNomor ID Soal kosong: ${belumDijawab.join(", ")}`);
                 setTimeout(() => { jumlahPelanggaran = backupTilang; }, 800);
             } else {
-                if (confirm("Apakah Anda yakin ingin mengirim jawaban?")) { clearInterval(timerInterval); kirimJawaban(); }
+                if (confirm("Kirim jawaban?")) { clearInterval(timerInterval); kirimJawaban(); }
                 else { setTimeout(() => { jumlahPelanggaran = backupTilang; }, 800); }
             }
         }
 
         function kirimJawaban() {
             jumlahPelanggaran = -999;
-            document.getElementById("area-soal").innerHTML = "<h2>Mengirim jawaban... mohon tunggu sebentar.</h2>";
+            document.getElementById("area-soal").innerHTML = "<h2>Menyimpan jawaban...</h2>";
             fetch(`${URL_API}?action=submit&nis=${nisSiswaAktif}&mapel=${mapelAktif}&jawaban=${encodeURIComponent(JSON.stringify(jawabanSiswa))}`)
-            .then(() => { alert("Sukses! Jawaban Anda telah tersimpan."); resetKeLogin("Ujian Berhasil."); });
+            .then(() => { alert("Sukses!"); resetKeLogin("Jawaban tersimpan."); });
         }
 
         function gantiSoal(arah) { if(bankSoal[indexSoalSaatIni+arah]) tampilkanSoal(indexSoalSaatIni+arah); }
